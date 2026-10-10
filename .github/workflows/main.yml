@@ -1,0 +1,28 @@
+name: WEB_SSH_TIPSUNIX
+on:
+  workflow_dispatch:
+
+jobs:
+  web-ssh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Setup ttyd and Tailscale
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ttyd
+
+          PASS=$(openssl rand -base64 12)
+
+          curl -fsSL https://tailscale.com/install.sh | sh
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-runner-$GITHUB_RUN_ID
+          IP=$(tailscale ip -4)
+
+          echo "=== WEB TERMINAL ACCESS ==="
+          echo "URL: http://$IP:7681"
+          echo "Username: runner"
+          echo "Password: $PASS"
+          echo "==========================="
+
+          # ponytail: ttyd HTTP polos; upgrade HTTPS jika expose luar Tailscale
+          ttyd -p 7681 -c runner:$PASS bash
